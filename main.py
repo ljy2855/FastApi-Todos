@@ -2,13 +2,13 @@ from contextlib import asynccontextmanager
 import json
 from typing import Dict
 import fastapi
+from fastapi.applications import HTMLResponse
 from pydantic import BaseModel
 
-
-
 class Todoitem(BaseModel):
-    name: str
-    done: bool
+    title: str
+    description : str
+    completed: bool = False
 
 
 class FileRepository:
@@ -77,19 +77,33 @@ async def lifespan(app: fastapi.FastAPI):
 app = fastapi.FastAPI(lifespan=lifespan)
 
 
-@app.get("/items")
-def get_items():
-    return service.get_all()
+@app.get("/")
+def read_root():
+    with open("templates/index.html") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
 
-@app.post("/items")
+@app.get("/todos")
+def get_items():
+    # serialize the data
+    todos = service.get_all()
+    serialized_data = []
+    for id, todo in todos.items():
+        data = todo.model_dump()
+        data["id"] = id
+        serialized_data.append(data)
+    return serialized_data
+
+    
+
+@app.post("/todos")
 def add_item(item: Todoitem):
     return service.add(item)
 
-@app.delete("/items/{index}")
+@app.delete("/todos/{index}")
 def remove_item(index: int):
     return service.remove(index)
 
-@app.put("/items/{index}")
+@app.put("/todos/{index}")
 def update_item(index: int, item: Todoitem):
     return service.update(index, item)
 
