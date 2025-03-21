@@ -1,81 +1,55 @@
 from contextlib import asynccontextmanager
-import json
 from typing import Dict
 import fastapi
 from fastapi.applications import HTMLResponse
-from pydantic import BaseModel
 
-class Todoitem(BaseModel):
-    title: str
-    description : str
-    completed: bool = False
+from repository import FileRepository, SQLiteRepository, Repository
+from model import Todoitem
 
-
-class FileRepository:
-    
-    def __init__(self,file_name="db.json" ):
-        self.file = open(file_name,"+a")
-        self.data : Dict[int,Todoitem] = {}
-        self.index_counter = 0
-
-    def load(self):
-        self.file.seek(0)
-        try:
-            self.data = {int(k): Todoitem(**v) for k, v in json.load(self.file).items()}
-        except json.JSONDecodeError:
-            self.data = {}
-        self.index_counter = len(self.data)
-
-    def flush(self):
-        self.file.seek(0)
-        self.file.truncate()
-        serialized_data = {k: v.model_dump() for k, v in self.data.items()}
-        json.dump(serialized_data,self.file)
-
-    
 
 class TodoService:
-    def __init__(self, repo: FileRepository):
+    def __init__(self, repo: Repository):
         self.repo = repo
         self.repo.load()
-        
-    def get_all(self):
+
+    def get_all(self) -> Dict[int, Todoitem]:
         return self.repo.data
 
     def add(self, item: Todoitem):
-        new_item = Todoitem(index=len(self.repo.data), **item.model_dump())
-        self.repo.index_counter += 1
-        self.repo.data[self.repo.index_counter] = new_item
-        return item
+        added = self.repo.add(item)
+        # SQLite는 id를 자동생성하므로 data에 있는 최신 ID를 찾아야 함
+        if hasattr(self.repo, "index_counter"):
+            item_id = self.repo.index_counter
+        else:
+            item_id = max(self.repo.data.keys())
+        return {**item.model_dump(), "id": item_id}
 
     def remove(self, index: int):
-        try:
-            item = self.repo.data.pop(index)
-        except KeyError:
-            return None
-        return item
+        result = self.repo.remove(index)
+        return {"success": result is not None}
 
     def update(self, index: int, item: Todoitem):
-        try:
-            self.repo.data[index] = item
-        except KeyError:
-            return None
-        return item
+        result = self.repo.update(index, item)
+        return {"success": result is not None}
+
+    def close(self):
+        self.repo.flush()
+        self.repo.close()
     
 
 service: TodoService
 
+
+
 @asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
-    repo = FileRepository()
+    repo = SQLiteRepository()  # 또는 FileRepository()
     global service
     service = TodoService(repo)
     yield
-    repo.flush()
-    repo.file.close()
+    service.close()
 
 app = fastapi.FastAPI(lifespan=lifespan)
-
 
 @app.get("/")
 def read_root():
