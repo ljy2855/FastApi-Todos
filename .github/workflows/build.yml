@@ -1,0 +1,76 @@
+name: Deploy FastAPI to DockerHub
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Log in to DockerHub
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Set up Docker Buildx (multi-platform builds)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # Get current version, increment it and create a new tag
+      - name: Get current version and increment it
+        id: version
+        run: |
+          # Fetch all tags  
+          git fetch --tags  
+
+          # Get the latest tag (fallback to v0.0.0 if no tags exist)  
+          LATEST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "v0.0.0")  
+          echo "Latest tag: $LATEST_TAG"  
+
+          # Extract version numbers  
+          VERSION=$(echo "$LATEST_TAG" | sed 's/^v//')  
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)  
+          MINOR=$(echo "$VERSION" | cut -d. -f2)  
+          PATCH=$(echo "$VERSION" | cut -d. -f3)  
+
+          # Increment the PATCH version  
+          NEW_PATCH=$((PATCH + 1))  
+          NEW_VERSION="v$MAJOR.$MINOR.$NEW_PATCH"  
+          echo "New version: $NEW_VERSION"  
+
+          # Create and push the new tag  
+          git tag $NEW_VERSION  
+          git push origin $NEW_VERSION  
+
+          # Set the output variable for later use  
+          echo "version=$NEW_VERSION" >> $GITHUB_ENV  
+          echo "::set-output name=version::$NEW_VERSION"
+
+      # Build the Docker image
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}:${{ env.version }}  
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}:buildcache,mode=max

@@ -11,3 +11,5 @@ wheels/
 
 db.json
 sqlite.db
+
+.DS_Store
