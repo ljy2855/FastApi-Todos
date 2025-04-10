@@ -13,3 +13,6 @@ db.json
 sqlite.db
 
 .DS_Store
+
+pytest_report/
+.coverage
