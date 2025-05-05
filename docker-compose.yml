@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   fastapi-app:
-    build: .
+    image: cocopam/sample_app:latest
     container_name: FastApi-app
     ports:
       - "5001:8000"
