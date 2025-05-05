@@ -71,6 +71,7 @@ class FileRepository(Repository):
     def close(self):
         self.file.close()
 
+
 class SQLiteRepository(Repository):
     def __init__(self, db_path="sqlite.db"):
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
@@ -80,14 +81,16 @@ class SQLiteRepository(Repository):
 
     def _init_db(self):
         cursor = self.conn.cursor()
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS todos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 description TEXT NOT NULL,
                 completed BOOLEAN NOT NULL CHECK (completed IN (0, 1))
             )
-        ''')
+        """
+        )
         self.conn.commit()
 
     def load(self):
@@ -101,13 +104,20 @@ class SQLiteRepository(Repository):
         self.index_counter = max(self.data.keys(), default=0)
 
     def flush(self):
-        pass  
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM todos")
+        for item_id, item in self.data.items():
+            cursor.execute(
+                "INSERT INTO todos (id, title, description, completed) VALUES (?, ?, ?, ?)",
+                (item_id, item.title, item.description, item.completed),
+            )
+        self.conn.commit()
 
     def add(self, item: Todoitem):
         cursor = self.conn.cursor()
         cursor.execute(
             "INSERT INTO todos (title, description, completed) VALUES (?, ?, ?)",
-            (item.title, item.description, item.completed)
+            (item.title, item.description, item.completed),
         )
         self.conn.commit()
         item_id = cursor.lastrowid
@@ -125,7 +135,7 @@ class SQLiteRepository(Repository):
         cursor = self.conn.cursor()
         cursor.execute(
             "UPDATE todos SET title = ?, description = ?, completed = ? WHERE id = ?",
-            (item.title, item.description, item.completed, index)
+            (item.title, item.description, item.completed, index),
         )
         self.conn.commit()
         if cursor.rowcount > 0:
