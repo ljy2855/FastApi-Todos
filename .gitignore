@@ -16,3 +16,6 @@ sqlite.db
 
 pytest_report/
 .coverage
+
+coverage.xml
+.scannerwork
