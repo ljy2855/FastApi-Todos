@@ -2,7 +2,9 @@ version: "3.7"
 
 services:
   fastapi-app:
-    image: cocopam/sample_app:latest
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: FastApi-app
     ports:
       - "5001:8000"
@@ -19,6 +21,46 @@ services:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_logs:/opt/sonarqube/logs
       - sonarqube_extensions:/opt/sonarqube/extensions
+  
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+  
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin 
+
+  # node-exporter:
+  #   image: quay.io/prometheus/node-exporter:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - "9100:9100"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.1
+    privileged: true
+    platform: linux/aarch64
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - "/dev/disk/:/dev/disk:ro"
+      # - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
       
 volumes:
   sonarqube_conf:

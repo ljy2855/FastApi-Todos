@@ -19,3 +19,6 @@ pytest_report/
 
 coverage.xml
 .scannerwork
+
+grafana/provisioning/dashboards/*
+grafana/dashboards/*

@@ -6,6 +6,8 @@ from fastapi.applications import HTMLResponse
 from repository import FileRepository, SQLiteRepository, Repository
 from model import Todoitem
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 
 class TodoService:
     def __init__(self, repo: Repository):
@@ -35,10 +37,9 @@ class TodoService:
     def close(self):
         self.repo.flush()
         self.repo.close()
-    
+
 
 service: TodoService
-
 
 
 @asynccontextmanager
@@ -49,12 +50,18 @@ async def lifespan(app: fastapi.FastAPI):
     yield
     service.close()
 
+
 app = fastapi.FastAPI(lifespan=lifespan)
+
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
 
 @app.get("/")
 def read_root():
     with open("templates/index.html") as f:
         return HTMLResponse(content=f.read(), status_code=200)
+
 
 @app.get("/todos")
 def get_items():
@@ -67,15 +74,16 @@ def get_items():
         serialized_data.append(data)
     return serialized_data
 
-    
 
 @app.post("/todos")
 def add_item(item: Todoitem):
     return service.add(item)
 
+
 @app.delete("/todos/{index}")
 def remove_item(index: int):
     return service.remove(index)
+
 
 @app.put("/todos/{index}")
 def update_item(index: int, item: Todoitem):
@@ -84,4 +92,5 @@ def update_item(index: int, item: Todoitem):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
