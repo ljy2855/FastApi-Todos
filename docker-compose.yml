@@ -22,6 +22,17 @@ services:
   #     - sonarqube_logs:/opt/sonarqube/logs
   #     - sonarqube_extensions:/opt/sonarqube/extensions
   
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=jmeter
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=admin123
+    volumes:
+      - influxdb_data:/var/lib/influxdb
   prometheus:
     image: prom/prometheus:latest
     ports:
@@ -61,25 +72,25 @@ services:
       # - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
   
-  jmeter:
-    build:
-      context: ./jmeter
-      dockerfile: Dockerfile
-    container_name: jmeter
-    volumes:
-      - ./jmeter:/jmeter
-    command:
-      - jmeter
-      - -n
-      - -t
-      - /jmeter/fastapi_test_plan.jmx
-      - -l
-      - /jmeter/results.jtl
-      - -JBASE_URL=http://fastapi-app:5001
-      - -Jjmeter.save.saveservice.output_format=csv
-      - -e
-      - -o
-      - /jmeter/report
+  # jmeter:
+  #   build:
+  #     context: ./jmeter
+  #     dockerfile: Dockerfile
+  #   container_name: jmeter
+  #   volumes:
+  #     - ./jmeter:/jmeter
+  #   command:
+  #     - jmeter
+  #     - -n
+  #     - -t
+  #     - /jmeter/fastapi_test_plan.jmx
+  #     - -l
+  #     - /jmeter/results.jtl
+  #     - -JBASE_URL=http://fastapi-app:5001
+  #     - -Jjmeter.save.saveservice.output_format=csv
+  #     - -e
+  #     - -o
+  #     - /jmeter/report
 
       
 volumes:
@@ -87,3 +98,4 @@ volumes:
   sonarqube_data:
   sonarqube_logs:
   sonarqube_extensions:
+  influxdb_data:
