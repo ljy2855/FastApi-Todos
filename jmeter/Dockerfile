@@ -19,5 +19,7 @@ RUN wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_
 # Set the working directory
 WORKDIR ${JMETER_HOME}
 
+COPY fastapi_test_plan.jmx /jmeter/fastapi_test_plan.jmx
+
 # Default command: run JMeter in non-GUI mode
 CMD ["jmeter", "-n"]
