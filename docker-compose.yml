@@ -9,18 +9,18 @@ services:
     ports:
       - "5001:8000"
   
-  sonarqube:
-    image: sonarqube:latest
-    container_name: sonarqube
-    ports:
-      - "9000:9000"
-    environment:
-      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true  # 메모리 제한 환경에서 유용한 옵션
-    volumes:
-      - sonarqube_conf:/opt/sonarqube/conf
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_logs:/opt/sonarqube/logs
-      - sonarqube_extensions:/opt/sonarqube/extensions
+  # sonarqube:
+  #   image: sonarqube:latest
+  #   container_name: sonarqube
+  #   ports:
+  #     - "9000:9000"
+  #   environment:
+  #     - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true  # 메모리 제한 환경에서 유용한 옵션
+  #   volumes:
+  #     - sonarqube_conf:/opt/sonarqube/conf
+  #     - sonarqube_data:/opt/sonarqube/data
+  #     - sonarqube_logs:/opt/sonarqube/logs
+  #     - sonarqube_extensions:/opt/sonarqube/extensions
   
   prometheus:
     image: prom/prometheus:latest
@@ -60,6 +60,26 @@ services:
       # - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
       # - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
+  
+  jmeter:
+    build:
+      context: ./jmeter
+      dockerfile: Dockerfile
+    container_name: jmeter
+    volumes:
+      - ./jmeter:/jmeter
+    command:
+      - jmeter
+      - -n
+      - -t
+      - /jmeter/fastapi_test_plan.jmx
+      - -l
+      - /jmeter/results.jtl
+      - -JBASE_URL=http://fastapi-app:5001
+      - -Jjmeter.save.saveservice.output_format=csv
+      - -e
+      - -o
+      - /jmeter/report
 
       
 volumes:
