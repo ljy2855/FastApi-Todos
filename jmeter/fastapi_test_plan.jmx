@@ -111,7 +111,6 @@
           <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
         </HTTPSamplerProxy>
         <hashTree/>
-        <hashTree/>
       </hashTree>
     </hashTree>
   </hashTree>
