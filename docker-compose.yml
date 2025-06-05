@@ -8,7 +8,10 @@ services:
     container_name: FastApi-app
     ports:
       - "5001:8000"
-  
+    depends_on:
+      - loki
+    environment:
+      - LOKI_ENDPOINT=http://loki:3100/loki/api/v1/push
   # sonarqube:
   #   image: sonarqube:latest
   #   container_name: sonarqube
@@ -92,6 +95,11 @@ services:
   #     - -o
   #     - /jmeter/report
 
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"  
       
 volumes:
   sonarqube_conf:
